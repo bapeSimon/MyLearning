@@ -1,40 +1,65 @@
-## PRD v1.0 — 教學/教練 App（含預約/比賽、QR 入群、成就展示牆）
+## PRD v1.0 — 教學/教練 App（MVP）
 
 版本：1.0  
-範圍：iOS、Android（Flutter）；後端 NestJS + Postgres；AI 服務（OCR/LLM）  
-角色：老師/教練、家長、學生、機構管理者
+平台：iOS、Android（Flutter）  
+後端：NestJS（TypeScript）、PostgreSQL、Redis、S3/GCS、BullMQ  
+AI/OCR：OpenAI GPT-4o/4.1、Google Vision/AWS Textract、FastAPI（Python）  
+主要角色：老師/教練、家長、學生、機構管理者
 
 ---
 
-## 產品目標與成功指標
-- 目標
-  - AI 輔助改卷/評語節省老師時間
-  - 家長即時掌握學習與課堂安排
-  - 教練建立品牌影響力（社群 + 展示牆）
-  - 可預約課堂與比賽報名，提高轉化與出席率
-- KPI（MVP）
-  - 老師周活≥35%，AI 改卷採納率≥60%，家長查看率≥65%
-  - 預約轉化率≥20%，到課率≥85%，候補轉正≥15%
-  - QR 入群轉化≥50%，展示牆分享率≥10%
+## 1. 目標與成功指標
+- 產品目標
+  - 以 AI 輔助改卷與評語，提高教師效率與一致性
+  - 家長即時掌握孩子學習進度與課堂安排
+  - 提供預約課堂與競賽報名，提高轉化與到課率
+  - 成就展示牆強化學習動機與老師/教練專業形象
+- MVP KPI（首三個月）
+  - 老師周活 ≥ 35% ；AI 改卷採納率 ≥ 60%
+  - 家長查看率 ≥ 65% ；預約轉化 ≥ 20% ；到課率 ≥ 85%
+  - QR 入群轉化 ≥ 50% ；展示牆分享率 ≥ 10%
 
 ---
 
-## 角色與權限
-- 老師/教練：建立/管理班級、作業/AI 改卷、課堂排程、預約、比賽、授勳、發布貼文
-- 家長：綁定孩子、查看成績/報告、預約/候補、隱私同意、展示牆管理（未成年）
-- 學生：提交作業、查看成績/回饋、展示牆（視年齡與家長設定）
-- 機構管理者：課程/老師配置、對賬、統計、審核
+## 2. 範圍與不在範圍
+- 在範圍（MVP）
+  - 認證/角色、機構/班級與入群邀請（含 QR/深連結）
+  - 作業/提交、AI 改卷與人審、成績發布、報告
+  - 預約課堂（模板、Session、預約、候補/補位、簽到、提醒/ICS）
+  - 競賽（賽事/分組、報名/候補、簽到、基本成績發布）
+  - 成就/徽章與展示牆、排行榜（班級/機構/賽事）
+  - 精簡社群貼文（圖文/短片、按讚/留言、檢舉）
+  - 支付/點數（Stripe 訂閱、IAP/Play 點數）
+  - 隱私/合規與商店政策（兒少保護、刪除帳號、家長閘）
+- 不在範圍（未來）
+  - 即時影音互動教學、白板/課中工具
+  - 進階報表自訂、BI 連接器
+  - 進階搜尋（全文/向量）與推薦
+  - 完整 B2B 機構後台（配額/發票/對賬深度）
 
 ---
 
-## 用例（User Stories）與流程圖
+## 3. 人物誌（Personas）與角色權限
+- 老師/教練：建班、出題、AI 改卷審核、排程/預約、賽事、授勳、貼文
+- 家長：綁定孩子、查看報告/成績、預約/候補/改期/取消、隱私同意、展示牆管理
+- 學生：提交作業、查看成績/回饋、展示牆（依年齡/家長設定）
+- 機構管理者：課程/老師配置、對賬、統計、內容審核
 
-### A. QR 入群邀請
-- 作為老師，我可以為班級/機構/賽事項目產生可分享的邀請碼與 QR，設置到期/次數/角色，讓家長或學生掃碼快速加入。
-- 作為家長/學生，我可以掃碼，預覽群組資訊並同意加入（未成年需家長同意）。
-- 作為管理者，我可以撤銷或暫停邀請碼，避免濫用。
+權限概要（精選）：
+- `teacher|coach`：CRUD 班級/作業/排程/賽事；確認 AI 成績；授勳；貼文管理
+- `parent`：綁定/同意；替子女預約與管理；展示牆可見性控制
+- `student`：提交作業、查看回饋；個人展示牆受保護
+- `admin`：審核/封鎖；設定模板與徽章；匯出報表
 
-流程（序列）：
+---
+
+## 4. 核心用例與流程
+
+### 4.1 QR 入群邀請
+- 老師為班級/機構/賽事項目建立邀請：限制到期/次數/角色 → 產生深連結與 QR → 分享
+- 家長/學生掃碼 → App/落地頁預覽 → 同意加入（未成年需家長同意）→ 建立成員關係
+
+流程圖（Mermaid）：
 ```mermaid
 sequenceDiagram
   participant T as 老師/教練
@@ -55,10 +80,8 @@ sequenceDiagram
   API-->>App: 成功加入 + 通知
 ```
 
-### B. 預約課堂（含候補/補位）
-- 作為教練，我可設定可預約時段（單次/週期）、價格/人數/地點/政策，系統自動生成 Session。
-- 作為家長，我可搜尋與預約、進候補、收到提醒，並在政策允許下改期/取消。
-- 作為教練，我可查看候補名單並手動/自動補位、簽到出席。
+### 4.2 預約課堂（候補/補位/提醒）
+- 教練設定可預約模板 → 批量生成未來 8–12 週 Session → 家長搜尋/預約 → 滿額進候補 → 有人取消自動補位 → 提醒/簽到
 
 流程（候補與補位）：
 ```mermaid
@@ -73,133 +96,275 @@ flowchart TD
   H --> E
 ```
 
-### C. 比賽（賽事/分組/簽到/成績）
-- 作為教練，我可建立賽事、設定分組/名額與規則、開放報名與候補、現場簽到、發佈成績。
-- 作為家長/學生，我可在規則允許下報名分組、收到簽到與賽程提醒、查看成績卡片。
+### 4.3 競賽（賽事/分組/簽到/成績）
+- 教練建立賽事與分組限制（年齡/性別/量級） → 報名/候補 → 現場簽到 → 成績發布 → 生成成績卡片/展示牆
 
-### D. 成就展示牆（成績/徽章/作品）
-- 作為學生/家長，我可在成績發布或比賽結束後，將成績卡片加入展示牆，並設定可見性。
-- 作為系統/教練，當符合規則時自動頒發徽章（連續提交/進步幅度/到課率）。
-- 作為家長，我可對未成年子女的展示牆公開行為進行同意/撤回。
+### 4.4 作業/AI 改卷/發布
+- 老師出題+Rubric → 學生提交（拍照/PDF）→ OCR/抽取 → LLM 評分+評語草稿 → 老師審核/覆寫 → 發布成績 → 通知/報表
 
-事件 → 授勳 → 展示牆：
-```mermaid
-sequenceDiagram
-  participant S as 事件源（Grade/出席/比賽）
-  participant Q as 事件佇列
-  participant R as 規則引擎
-  participant DB as DB
-  S->>Q: 發佈事件
-  Q->>R: 消費事件
-  R->>DB: 判斷條件→頒發 user_achievement
-  R->>DB: 生成/更新 portfolio_item（可見性規則）
-  DB-->>R: 成功
+### 4.5 成就與展示牆
+- 事件（成績/到課/比賽）→ 規則引擎判斷 → 頒發徽章 → 自動/手動加入展示牆（家長可見性控制）
+
+---
+
+## 5. 詳細功能需求與驗收標準（AC）
+
+### 5.1 認證/帳戶/同意
+- Email/手機註冊（OTP 可後續）、登入、找回密碼；基本檔案（名稱、頭像、時區）
+- 兒少：家長綁定與同意；同意可撤回；刪除/匯出資料入口
+- AC：
+  - 新註冊預設角色為 `parent`；可透過邀請新增 `teacher|coach|student`
+  - 刪除帳號 7 天冷卻期，可恢復；逾期不可逆
+
+### 5.2 組織/班級/入群（含 QR）
+- 建立 `Organization` / `ClassRoom`、導入名單、產生邀請碼/QR、限制（到期/最大次數/角色）
+- 深連結：`https://join.yourapp.com/i/{code}`（Universal/App Links；安裝後回跳）
+- 安全：可撤銷；使用數與審計；容量/資格檢查在交易內完成
+- AC：
+  - 200 併發掃碼下，僅容量內成功，其餘回應滿額/候補；無重覆加入
+  - 撤銷立即生效；審計可查
+
+### 5.3 作業/提交/AI 改卷
+- 作業：標題/說明/截止、Rubric（criteria/levels/weights）
+- 提交：相機掃描、多頁、去陰影/裁切；支援 PDF 圖片
+- AI：OCR→結構化→Rubric 比對→分數與評語草稿；信心低需人審
+- 老師審核：覆寫/編輯，版本留存；發布後通知家長
+- AC：
+  - 清晰樣張 OCR 準確率 ≥ 95%；低信心不可直發
+  - 成績發布 2s 內發出通知；報告即時更新
+
+### 5.4 報告/視覺化
+- 學生趨勢（平均/分項/進步）、班級分布、PDF 匯出
+- AC：
+  - 支援期間（近30/90天、自訂）；導出在 30 秒內完成或給排程下載連結
+
+### 5.5 通知/提醒/行事曆
+- 即時通知：提交、評分完成、預約狀態（確認/候補/補位/取消）
+- 提醒：T-24h / T-1h；ICS 訂閱（tokenized URL）
+- AC：
+  - 通知 P95 ≤ 5 秒；ICS 變更 1 分鐘內同步
+
+### 5.6 預約/候補/補位/簽到
+- 模板：週期/日期範圍、資源/地點、容量、價格、政策（取消/改期）
+- Session：批量生成、開關報名、可見性（公開/私密）
+- 預約：容量檢查在交易中；幂等 key；超賣=0
+- 候補：FIFO；取消觸發自動補位（可通知付款）
+- 簽到：現場/代簽；狀態=出席/缺席；名單匯出
+- AC：
+  - 併發 200 下超賣=0；候補轉正≤5 秒內通知
+  - 政策限制顯示明確（剩餘分/時）並阻擋不符操作
+
+### 5.7 競賽/分組/成績
+- 分組限制（年齡/性別/量級）；名額/候補；簽到與成績發布
+- AC：
+  - 不符條件報名被拒並提示；簽到名單與報名一致
+
+### 5.8 成就/展示牆/排行榜
+- 徽章：系統/機構定義、圖示、點數、條件（JSON）
+- 展示牆：成績卡、比賽結果、徽章、作品/證書；可見性=私密/機構/公開
+- 排行榜：班級/機構/賽事，指標=平均分/進步/出席
+- AC：
+  - 事件觸發 10 秒內授勳；同一徽章去重；家長撤回同意後 60 秒內全站下架
+
+### 5.9 社群貼文（精簡）
+- 圖文/短片、按讚/留言、檢舉；未成年公開需家長同意
+- AC：
+  - 檢舉自動進審核佇列；違規自動下架 + 人工覆核
+
+### 5.10 支付/點數/退款
+- 教師端訂閱（Stripe）；家長端課堂：免費/線下/點數兌換；線上即時課建議 IAP/Play 或點數
+- 對賬：日匯總；訂單狀態與預約同步
+- AC：
+  - 付款成功=confirmed；失敗=保留候補或取消；對賬誤差=0
+
+---
+
+## 6. 系統設計與資料模型
+
+### 6.1 主要資料表（核心欄位摘要）
+- `User(id, email/phone, password_hash/social_id, locale, roles[])`
+- `Organization(id, name, type)`
+- `ClassRoom(id, org_id, name, subject, coach_id)`
+- `StudentProfile(id, user_id?, external_ref, org_id)`
+- `ParentLink(id, parent_user_id, student_id, consent_status, consent_at)`
+- `Assignment(id, class_id, title, rubric_id, due_at, status)`
+- `Rubric(id, name, criteria[])`
+- `Submission(id, assignment_id, student_id, media_ids[], text, submitted_at, status)`
+- `AIJob(id, submission_id, stage, provider, cost_tokens, result, status, started_at, finished_at)`
+- `Grade(id, submission_id, total_score, per_criterion[], teacher_note, published_at, version)`
+- `ReportSnapshot(id, target_id, target_type, period, metrics_json, generated_at)`
+- `Notification(id, user_id, type, payload, read_at)`
+- 預約/排課：`Resource`, `AvailabilityTemplate`, `BlackoutWindow`, `Session(id, org_id, coach_user_id, resource_id, time_range tsrange, capacity, price_cents, status, visibility)`, `BookingPolicy`, `Booking(id, session_id, student_id, status, payment_intent_id?, check_in_at?)`, `WaitlistEntry`, `Attendance`
+- 競賽：`Competition`, `CompetitionDivision`, `CompetitionRegistration`
+- 展示：`AchievementDefinition`, `UserAchievement`, `PortfolioItem`
+- 金流：`Subscription`, `CreditLedger`
+
+### 6.2 關鍵約束與索引（示例）
+```sql
+CREATE EXTENSION IF NOT EXISTS btree_gist;
+
+-- Session 時段不重疊（每資源）
+ALTER TABLE session
+ADD CONSTRAINT session_no_overlap_per_resource
+EXCLUDE USING gist (
+  resource_id WITH =,
+  time_range WITH &&
+) WHERE (status IN ('open','closed'));
+
+-- 邀請碼
+CREATE TYPE invite_target AS ENUM ('org','class','competition','group');
+CREATE TYPE invite_status AS ENUM ('active','revoked','expired');
+
+CREATE TABLE invite (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  code TEXT UNIQUE NOT NULL,
+  target_type invite_target NOT NULL,
+  target_id UUID NOT NULL,
+  role_to_assign TEXT CHECK (role_to_assign IN ('parent','student','teacher','coach')) NOT NULL,
+  created_by UUID NOT NULL,
+  max_uses INT NOT NULL DEFAULT 1,
+  used_count INT NOT NULL DEFAULT 0,
+  expires_at TIMESTAMPTZ,
+  status invite_status NOT NULL DEFAULT 'active',
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  revoked_at TIMESTAMPTZ
+);
+
+CREATE INDEX idx_invite_active ON invite (code) WHERE status='active';
 ```
 
----
-
-## 功能需求與驗收標準（AC）
-
-### 1) 認證與角色/機構
-- 支援 Email/手機註冊、第三方登入（可後續）
-- 角色：teacher/coach/parent/student/admin；可多角色
-- AC
-  - 新註冊預設角色=家長（可由邀請碼切換/新增）
-  - 班級/機構/賽事的角色授權由邀請流程或管理者指派
-  - GDPR/兒少：刪除帳號自助入口；資料匯出
-
-### 2) 作業/提交/AI 改卷
-- 老師出題與 Rubric；學生拍照/上傳；AI 產生分數與評語草稿→老師審核→發布
-- AC
-  - 圖片多頁、OCR 成功率≥95%（清晰度標準範例）
-  - 老師可覆寫分數與評語；保留審核版本
-  - AI 低信心自動標記需人審；不可直發
-
-### 3) 報告與通知
-- 學生/班級報告曲線；導出 PDF
-- 即時通知：提交、評分完成、預約/候補/補位/提醒
-- AC
-  - 通知延遲 P95 ≤ 5s；提醒在 T-24h / T-1h 觸發
-  - 報告期間篩選（近30/90天、自訂）
-
-### 4) 社群貼文（精簡）
-- 老師/教練/機構可發布貼文；按讚/留言；檢舉
-- AC
-  - 未成年照片公開須家長同意；違規自動下架 + 人工覆核
-
-### 5) 預約課堂（新）
-- 可預約模板（週期/日期範圍/資源/容量/價格）
-- Session 批量生成（未來 8–12 週），開關報名，候補/自動補位
-- 改期/取消政策：cancel_before_mins、reschedule_before_mins
-- 簽到（現場/代簽）、名單導出、ICS
-- AC
-  - 同一時段/資源 EXCLUDE 約束保證無重疊；200 併發下超賣=0
-  - 滿額自動候補；取消自動提升第一個候補並通知
-  - 改期/取消超出政策即阻擋並顯示原因
-  - 行事曆 ICS 可被 Google/Apple 讀取；變更能同步
-
-### 6) 比賽/競賽（新）
-- 賽事（時間/地點/規則）、分組名額、報名/候補、簽到、成績
-- AC
-  - 依分組限制（年齡/性別/量級）驗證，非法組報名被拒
-  - 簽到名單與報名名單一致，缺席標記清晰
-  - 成績發布後自動生成成績卡片（可進展示牆）
-
-### 7) QR 入群邀請（新）
-- 建立短碼/QR、限制：到期、最大次數、角色、目標（org/class/competition）
-- 預覽頁顯示名稱、類型、剩餘名額/到期
-- 接受時落實容量/資格檢查，交易一致性
-- AC
-  - 撤銷後所有掃碼立即失效；提供審計紀錄
-  - 200 併發掃碼：僅容量內成功，其餘返回候補/滿額提示
-
-### 8) 成就展示牆（新）
-- 內容：成績卡片、比賽結果、徽章、作品/證書
-- 可見性：私密/機構內/公開；未成年公開需家長同意，可隨時撤回
-- 排行榜：班級/機構/賽事，指標=平均分/進步/出席
-- AC
-  - 事件觸發後 10s 內授勳完成並可見
-  - 去重：同一徽章僅頒發一次（除等級型）
-  - 撤回同意後，公開內容 60s 內全站下架（快取失效）
-
-### 9) 支付/點數
-- 課堂可為免費/線下付費/點數兌換；線上課程建議 IAP/Play Billing（或點數）
-- Stripe 訂閱（教師端）、IAP/Play Billing（點數/訂閱）
-- AC
-  - 訂單狀態與預約狀態一致（已付=confirmed；失敗=取消/候補）
-  - 對賬：每日匯總金額與訂單數吻合（±0）
+### 6.3 事件流與佇列
+- 事件主題：`grade.published`, `booking.confirmed`, `booking.waitlisted`, `booking.promoted`, `competition.result_published`, `attendance.checked_in`, `invite.accepted`
+- 消費者：授勳/展示牆更新、提醒與通知、報表快照、補位處理
 
 ---
 
-## 介面與導覽（IA）
-- 老師/教練：首頁（待辦/通知）｜行事曆｜班級與作業｜AI 審核｜報告｜社群｜賽事｜我的（QR/展示牆/設定）
-- 家長/學生：首頁（孩子進度/近期活動）｜預約｜展示牆｜通知｜社群｜我的
-- 關鍵頁面空狀態、錯誤提示、權限引導（相機/通知/行事曆）
+## 7. API 契約（精選 + 示例）
+
+### 7.1 邀請（QR/深連結）
+- POST `/invites`
+```json
+{
+  "targetType": "class",
+  "targetId": "uuid-class",
+  "roleToAssign": "parent",
+  "maxUses": 20,
+  "expiresAt": "2025-12-31T00:00:00Z"
+}
+```
+回應：
+```json
+{
+  "id": "uuid-invite",
+  "code": "Ab12CdE9Fg",
+  "joinUrl": "https://join.yourapp.com/i/Ab12CdE9Fg",
+  "qrPngUrl": "https://cdn.../qr/Ab12CdE9Fg.png",
+  "status": "active"
+}
+```
+- GET `/invites/:code` → 預覽（名稱、類型、剩餘名額、到期）
+- POST `/invites/:code/accept`
+```json
+{ "studentId": "uuid-student", "idempotencyKey": "abc-123" }
+```
+錯誤碼：`INVITE_EXPIRED`, `INVITE_REVOKED`, `INVITE_CAP_REACHED`, `ALREADY_MEMBER`
+
+### 7.2 預約
+- POST `/availability-templates`（建立週期可預約模板）
+- POST `/sessions`（由模板生成或手動建立）
+- GET `/calendar/search?from=...&to=...&subject=...&near=...`
+- POST `/bookings`
+```json
+{
+  "sessionId": "uuid-session",
+  "studentId": "uuid-student",
+  "paymentMethod": "credit|offline|iap|stripe",
+  "idempotencyKey": "book-123"
+}
+```
+回應（成功）：
+```json
+{ "id": "uuid-booking", "status": "confirmed" }
+```
+錯誤碼：`SESSION_FULL`, `SESSION_CLOSED`, `POLICY_VIOLATION`, `DUPLICATE_REQUEST`
+
+- PATCH `/bookings/:id/cancel` | `/reschedule`
+- POST `/bookings/:id/check-in`
+
+### 7.3 比賽
+- POST `/competitions` | `/competitions/:id/divisions`
+- POST `/competitions/:id/register`
+```json
+{ "divisionId": "uuid-division", "studentId": "uuid-student", "idempotencyKey": "reg-1" }
+```
+錯誤碼：`DIVISION_FULL`, `ELIGIBILITY_FAILED`
+
+### 7.4 AI/評分
+- POST `/ai/jobs` { submissionId } → 202
+- GET `/ai/jobs/:id` → 狀態/結果；POST `/grades/:submissionId/confirm`
+
+### 7.5 展示牆/徽章
+- GET `/profiles/:userId/wall` → { stats, grades, competitions, achievements, portfolio }
+- POST `/achievements/award` | POST `/portfolio`
+
+備註：
+- 分頁：`page`/`pageSize`（預設 20，上限 100）
+- 時間：皆用 UTC ISO8601；客戶端依時區顯示
+- 幂等：所有「建立/支付/預約」類 API 必須支援 `Idempotency-Key`
 
 ---
 
-## 事件與分析（追蹤方案）
-- invite_created / invite_previewed / invite_accepted {targetType, role, success, reason}
-- session_published / booking_attempted / booking_confirmed / waitlisted / promoted / cancelled / rescheduled
-- competition_created / division_registered / check_in / result_published
-- grade_published / ai_suggest_generated / ai_accepted
-- achievement_awarded {key} / portfolio_item_added / privacy_changed
-- notification_sent {type} / opened
-- 事件欄位：userId、orgId、classId、sessionId、device、locale、tz、timestamp
+## 8. 深連結與 QR 產生規範
+- URL：`https://join.yourapp.com/i/{code}`；`code` 為 base62（長度 10–16）
+- App/Universal Links 設定：iOS `apple-app-site-association`、Android `assetlinks.json`
+- QR：PNG 512x512，誤碼等級=H，內嵌 15% 留白與品牌標誌（不遮關鍵定位點）
+- 安裝後回跳：使用 `install_referrer` 或首次啟動深連結參數
+- 風控：每 IP 速率限制、裝置指紋、黑名單；錯誤提示友善且不洩漏存在性
 
 ---
 
-## 非功能性需求（NFR）
-- 可用性：月可用性 ≥ 99.9%；資料備援與每日快照
-- 性能：API P95 ≤ 300ms（讀）、≤ 600ms（寫）；長任務以工作佇列
-- 併發一致性：預約/候補/補位使用交易 + 鎖 + 幂等 key
-- 資安：OWASP Top 10、RBAC、審計、加密（靜態 AES-256、傳輸 TLS1.2+）
-- 隱私/合規：GDPR/兒少保護、家長同意、刪除/匯出、資料區域化
-- 商店規範：帳號刪除入口、IAP 合規、家長閘、內容審核政策
+## 9. 非功能性需求（NFR）與 SLO
+- 可用性：月 ≥ 99.9%；RPO ≤ 24h；RTO ≤ 4h
+- 延遲：讀取 P95 ≤ 300ms；寫入/交易 P95 ≤ 600ms；通知送達 P95 ≤ 5s
+- 擴展：支援 10 萬月活、同時 5k 線上；任務佇列峰值 100 TPS
+- 一致性：預約/候補/補位全流程使用交易鎖 + SKIP LOCKED + 幂等 key
+- 安全：TLS1.2+、AES-256、KMS、最小權限、WAF、審計日誌
+- 隱私：GDPR/PDPA；兒少/家長同意；資料區域化（APAC：新加坡/東京）
+- 本地化：i18n（中/英），數字/日期/時區；RTL 後續
+- 無障礙：支援螢幕閱讀與對比度；動作/顏色不作唯一訊息承載
+- 行動裝置：iOS 15+、Android 8+；啟動 ≤ 2.5s、裝置離線可提交暫存（重試）
 
 ---
 
-## 驗收測試（Gherkin 精選）
+## 10. 安全、合規與商店政策
+- 兒少：家長綁定、可撤回公開、未成年預設私密；家長閘（外部連結）
+- 帳號刪除：App 內入口；7 天冷卻與提醒；資料匯出（JSON/ZIP）
+- 內容審核：自動 + 人工；UGC 舉報→下架→覆核；稽核記錄完整
+- 商店：IAP/Play Billing 合規、隱私政策、資料蒐集聲明、崩潰率/效能要求
+
+---
+
+## 11. 觀測與營運
+- 監控：SLO 儀表板（請求延遲/錯誤率/任務失敗率/佇列長度）
+- 錯誤追蹤：Sentry（前/後端）；崩潰率 ≤ 1%
+- 日誌：結構化 JSON；關鍵路徑（預約/支付/授勳）全鏈路 Trace
+- 警報：P1（停機/支付失敗率>2%）、P2（預約超賣>0）
+- Runbook：補位重試、支付對賬、資料修復、撤銷誤頒徽章
+
+---
+
+## 12. 發布計畫與里程碑（12 週）
+- 週1–2：QR 邀請與深連結、App 掃碼/預覽/接受、撤銷；排程模板與 Session 生成
+- 週3–4：預約/候補/補位、提醒與 ICS、簽到；報告 v1；展示牆/授勳基礎
+- 週5–6：競賽 MVP（賽事/分組/報名/簽到/成績）；排行榜
+- 週7–8：支付/點數（Stripe/IAP/Play）、對賬、退款規則；風控與壓測
+- 週9–10：AI 改卷打磨（提示/信心/人審 UX）；PDF 導出；社群精簡版
+- 週11–12：合規稽核、Beta 試點、崩潰與效能優化、商店上架
+
+---
+
+## 13. 驗收測試（Gherkin 精選）
 
 ### QR 入群
 ```
@@ -245,94 +410,50 @@ Then 系統阻擋並提示需人審；審核後方可發布
 
 ---
 
-## 資料模型（新增/擴充重點）
-- 新表（摘要）：
-  - invite, availability_template, session, booking_policy, booking, waitlist_entry, attendance,
-    competition, competition_division, competition_registration,
-    achievement_definition, user_achievement, portfolio_item,
-    resource, blackout_window
-- 關聯：
-  - invite.target → ClassRoom/Organization/Competition
-  - booking → session/student；portfolio_item → grade 或 competition_registration
-- 一致性與索引：
-  - session 使用 tsrange + btree_gist EXCLUDE 保證同資源無重疊
-  - booking 以幂等 key 與交易鎖避免超賣
+## 14. 事件與分析（追蹤方案）
+- `invite_created`, `invite_previewed`, `invite_accepted` {targetType, role, success, reason}
+- `session_published`, `booking_attempted`, `booking_confirmed`, `waitlisted`, `promoted`, `cancelled`, `rescheduled`
+- `competition_created`, `division_registered`, `check_in`, `result_published`
+- `grade_published`, `ai_suggest_generated`, `ai_accepted`
+- `achievement_awarded`{key}, `portfolio_item_added`, `privacy_changed`
+- `notification_sent`{type}, `opened`
+- 公共欄位：userId, orgId, classId, sessionId, device, appVersion, locale, tz, ts
 
-示例（防重疊與邀請）：
-```sql
-CREATE EXTENSION IF NOT EXISTS btree_gist;
+---
 
--- Session 時段不重疊（每資源）
-ALTER TABLE session
-ADD CONSTRAINT session_no_overlap_per_resource
-EXCLUDE USING gist (
-  resource_id WITH =,
-  time_range WITH &&
-) WHERE (status IN ('open','closed'));
-
--- 邀請碼表
-CREATE TYPE invite_target AS ENUM ('org','class','competition','group');
-CREATE TYPE invite_status AS ENUM ('active','revoked','expired');
-
-CREATE TABLE invite (
-  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
-  code TEXT UNIQUE NOT NULL,
-  target_type invite_target NOT NULL,
-  target_id UUID NOT NULL,
-  role_to_assign TEXT CHECK (role_to_assign IN ('parent','student','teacher','coach')) NOT NULL,
-  created_by UUID NOT NULL,
-  max_uses INT NOT NULL DEFAULT 1,
-  used_count INT NOT NULL DEFAULT 0,
-  expires_at TIMESTAMPTZ,
-  status invite_status NOT NULL DEFAULT 'active',
-  metadata JSONB DEFAULT '{}'::jsonb,
-  created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
-  revoked_at TIMESTAMPTZ
-);
-
-CREATE INDEX idx_invite_active ON invite (code) WHERE status='active';
+## 15. 錯誤碼與回覆規範（摘要）
+- 4xx：參數/權限/資源狀態
+  - `INVITE_EXPIRED`(410), `INVITE_REVOKED`(403), `INVITE_CAP_REACHED`(409), `ALREADY_MEMBER`(409)
+  - `SESSION_FULL`(409), `SESSION_CLOSED`(403), `POLICY_VIOLATION`(422), `DUPLICATE_REQUEST`(409)
+  - `DIVISION_FULL`(409), `ELIGIBILITY_FAILED`(422)
+- 5xx：服務暫時性錯誤；回傳 `retryAfter`（秒）
+- 回應格式：
+```json
+{ "error": { "code": "SESSION_FULL", "message": "Session is full", "details": {"remaining": 0} } }
 ```
 
 ---
 
-## API 契約（概述）
-- 認證：POST /auth/signup | /auth/login | GET /me
-- 組織/班級：POST /orgs | POST /classes | POST /classes/:id/invite
-- 作業/提交：POST /assignments | GET /classes/:id/assignments | POST /submissions
-- AI/評分：POST /ai/jobs | GET /ai/jobs/:id | POST /grades/:submissionId/confirm
-- 報告：GET /reports/student/:id | GET /reports/class/:id
-- 社群：POST /posts | GET /feed | POST /posts/:id/report
-- 預約：POST /availability-templates | POST /sessions | POST /bookings | PATCH /bookings/:id/cancel | POST /bookings/:id/check-in
-- 候補：GET /sessions/:id/waitlist | POST /sessions/:id/promote
-- 比賽：POST /competitions | POST /competitions/:id/divisions | POST /competitions/:id/register | POST /competitions/:id/check-in
-- 邀請：POST /invites | GET /invites/:code | POST /invites/:code/accept | POST /invites/:id/revoke
-- 展示牆：GET /profiles/:userId/wall | POST /portfolio | PATCH /portfolio/:id
-- 行事曆/通知：GET /calendar/ics-token | GET /calendar/ics/:token
-- 支付：POST /billing/ios/verify | /billing/google/verify | /billing/stripe/checkout
+## 16. 風險與緩解
+- AI 準確度不足 → Rubric 顯式化、信心閾值、人審預設、錯誤分析迭代
+- 兒少內容公開風險 → 家長同意/撤回、預設私密、審核與稽核
+- 預約超賣/重入 → 交易鎖、幂等、EXCLUDE 約束、壓測
+- 成本暴衝 → AI/ OCR 配額、批次/壓縮、模型選擇與蒸餾
 
 ---
 
-## 發布與里程碑（與 12 週計畫對齊）
-- 週1–2：QR 邀請後端與深連結、App 掃碼/預覽/接受、撤銷；預約模板與 Session 生成（不含支付）
-- 週3–4：候補/補位、提醒與 ICS、簽到；展示牆資料模型與事件授勳；排行榜（班級/機構）
-- 週5–6：比賽 MVP（賽事/分組/報名/簽到/成績）；展示牆隱私與分享卡
-- 週7–8：支付/點數串接（Stripe/IAP/Play）、報表與對賬；壓測與風控
-- 週9–12：整體打磨、合規稽核、試點上線、商店上架
+## 17. 詞彙（Glossary）
+- Session：可預約的單次課堂時段
+- Waitlist：滿額後候補序列，取消時自動補位
+- Portfolio：展示牆的單個條目，來源於成績/比賽/徽章/作品
+- Visibility：私密/機構/公開的可見性層級
 
 ---
 
-## 風險與對策
-- 濫用邀請碼：速率限制、IP/裝置評分、撤銷與審計
-- 超賣/重複預約：交易鎖 + 幂等 key + 佇列補位
-- 兒少隱私：家長同意與可撤回、公開審核、預設最小可見性
-- AI 準確度：Rubric 顯式化、低信心人審、錯誤分析
-
----
-
-## 驗收清單（Go/No-Go）
-- QR 入群：生成/預覽/接受/撤銷全通；壓測併發保證一致性
-- 預約：模板→Session→預約/候補/補位→提醒→簽到全鏈路通
-- 比賽：賽事→分組→報名→簽到→成績→展示牆
-- AI 改卷：端到端；人審強制；報告與通知
-- 支付：流程完整、對賬一致；商店合規
-- 合規：刪除帳號、家長閘、隱私政策、生效的資料區域化
+## 18. Go/No-Go 驗收清單
+- QR 入群：生成/預覽/接受/撤銷全通；併發一致性通過
+- 預約：模板→Session→預約/候補/補位→提醒→簽到完整
+- 競賽：賽事→分組→報名→簽到→成績→展示牆完整
+- AI 改卷：端到端、人審強制、報告/通知正常
+- 支付：扣點/Stripe/IAP/Play 流程與對賬一致
+- 合規：刪除帳號、家長閘、隱私政策、資料區域化到位
